@@ -37,19 +37,25 @@ for row in table.find_all('tr')[1:]:
 
         company_data.append({
             "Company Name":company_name,
-            "Description":company_description,
-            "Stake":company_stake
+            "Sector":company_description,
+            "Stake %":company_stake
         })
 
 df = pd.DataFrame(company_data)
 #filter companies fully owned by Berkshire Hathaway
-filtered_df = df[df['Stake'] == 100]
+full_ownership_df = df[df['Stake %'] == 100]
 
 #Storing the data in an excel sheet
 wb = Workbook()
-ws = wb.create_sheet('Company Owned')
+ws = wb.create_sheet('full Ownership')
 
-for r in dataframe_to_rows(filtered_df, header=True, index=False):
+for r in dataframe_to_rows(full_ownership_df, header=True, index=False):
     ws.append(r)
 wb.remove(wb['Sheet'])
-wb.save('/workspaces/1205/Company_owned(100).xlsx')
+
+posession_df = df[df['Stake %'] != 100]
+ws1 = wb.create_sheet('Posession')
+for r in dataframe_to_rows(posession_df, header=True, index=False):
+    ws1.append(r)
+
+wb.save('/workspaces/1205/Company_info.xlsx')
