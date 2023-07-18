@@ -3,7 +3,9 @@
     tabulate -> formatting the data into a table'''
 import requests
 from bs4 import BeautifulSoup
-from tabulate import tabulate
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows 
 
 #sets the URL of the Wikipedia page to be scraped
 url = "https://en.wikipedia.org/wiki/List_of_assets_owned_by_Berkshire_Hathaway"
@@ -18,9 +20,7 @@ soup = BeautifulSoup(response.text, 'html.parser')
 table = soup.find('table',{'class':'wikitable'})
 
 # Create empty lists to store the data
-company_names = []
-descriptions = []
-Stake = []
+company_data = []
 
 # Iterate over the rows in the table
 for row in table.find_all('tr')[1:]:
@@ -28,17 +28,28 @@ for row in table.find_all('tr')[1:]:
     if len(columns) >= 3:
         company_name = columns[0].text.strip()
         company_description = columns[1].text.strip()
-        company_stake = columns[2].text.strip()
-        company_names.append(company_name)
-        descriptions.append(company_description)
-        Stake.append(company_stake)
+        company_stake = columns[2].text.strip().rstrip('%')
+        company_stake = ''.join(filter(str.isdigit, company_stake))  # Extract only numeric characters
+        if company_stake:  # Check if the value is not empty
+            company_stake = int(company_stake)  # Convert stake to int
+        else:
+            company_stake = None  # Handle empty value
 
-# Create a list of lists containing the data
-data = list(zip(company_names, descriptions, Stake))
+        company_data.append({
+            "Company Name":company_name,
+            "Description":company_description,
+            "Stake":company_stake
+        })
 
-# Display the data in a table format
-headers = ["Company Name", "Description", "Stake"]
-table = tabulate(data, headers, tablefmt="pipe")
+df = pd.DataFrame(company_data)
+#filter companies fully owned by Berkshire Hathaway
+filtered_df = df[df['Stake'] == 100]
 
-# Print the table
-print(table)
+#Storing the data in an excel sheet
+wb = Workbook()
+ws = wb.create_sheet('Company Owned')
+
+for r in dataframe_to_rows(filtered_df, header=True, index=False):
+    ws.append(r)
+wb.remove(wb['Sheet'])
+wb.save('/workspaces/1205/Company_owned(100).xlsx')
